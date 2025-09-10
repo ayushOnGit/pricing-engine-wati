@@ -1,0 +1,849 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model bike_features {
+  id                                     Int            @id @default(autoincrement())
+  brand_name                             String         @db.VarChar(50)
+  model_name                             String         @db.VarChar(50)
+  variant_name                           String
+  aliases                                String?
+  features                               Json?
+  specifications                         Json?
+  created_at                             DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at                             DateTime?      @db.Timestamptz(3)
+  price                                  Int?
+  price_reduction                        Int?
+  vehicle_type                           vehicle_types?
+  supply_demand_factor_consecutive       Float?         @default(0)
+  supply_demand_factor_first             Float?         @default(0)
+  fuel                                   String?
+  pace                                   String?
+  price_type                             String?
+  max_allowed_year                       Int?
+  min_allowed_year                       Int?
+  bike_feature_cluster_id                Int?
+  linked_variant_id                      Int?
+  linked_variant_price_diff              Float?         @default(0)
+  supply_demand_factor_first_consecutive Float?         @default(0)
+  is_active                              Boolean        @default(false)
+  markup_appreciation_factor             Float?         @default(0)
+  min_proc_vsp_difference                Float?         @default(0)
+  proc_vsp_adjustment_factor             Float?         @default(0)
+  supply_demand_factor_later             Float?         @default(0)
+  bikes                                  bikes[]
+
+  @@unique([brand_name, model_name, variant_name], map: "bike_features_brand_name_model_name_variant_name_idx")
+  @@unique([brand_name, model_name, variant_name])
+  @@index([brand_name])
+  @@index([model_name])
+  @@index([variant_name])
+}
+
+model bike_inspection_reports {
+  id                  Int       @id @default(autoincrement())
+  bike_id             Int       @unique
+  member_id           Int?
+  date                DateTime  @default(now()) @db.Timestamptz(6)
+  report              Json?
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime? @db.Timestamptz(3)
+  activity_logs       Json?
+  bike_qc_report_id   Int?
+  is_report_submitted Boolean?  @default(false)
+  bikes               bikes     @relation(fields: [bike_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  members             members?  @relation(fields: [member_id], references: [id], onUpdate: NoAction)
+
+  @@index([bike_id])
+}
+
+model bikes {
+  id                       Int                        @id @default(autoincrement())
+  full_name                String?                    @db.VarChar(100)
+  vehicle_type             vehicle_types?             @default(commuter)
+  brand_name               String                     @db.VarChar(50)
+  model_name               String                     @db.VarChar(50)
+  variant_name             String                     @db.VarChar(50)
+  ownership                Int
+  km_driven                Int
+  manufacture_year         Int
+  primary_color            String?                    @db.VarChar(20)
+  secondary_color          String?                    @db.VarChar(20)
+  fuel_type                String                     @db.VarChar(30)
+  price                    Int
+  discount                 Int?
+  tag_value                String?                    @db.VarChar(50)
+  tag_type                 bike_tag_types?            @default(status)
+  reg_no                   String                     @db.VarChar(12)
+  registered_rto           String?                    @db.VarChar(100)
+  registered_city          String?                    @db.VarChar(100)
+  registered_state         String?                    @db.VarChar(100)
+  image_urls               String[]                   @db.VarChar(200)
+  store_id                 Int
+  status                   bike_statuses?             @default(inactive)
+  status_updated_at        DateTime?                  @db.Timestamptz(6)
+  status_change_reason     String?                    @db.VarChar(200)
+  listed_at                DateTime?                  @db.Timestamptz(6)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?                  @db.Timestamptz(3)
+  short_desc               String?
+  variant_id               Int?
+  activity_logs            Json?
+  registration_year        Int?
+  procurement_id           String?
+  initial_listing_price    Int?
+  msp                      Int?
+  registration_month       Int?
+  sold_at                  DateTime?                  @db.Timestamptz(6)
+  last_price_update_at     DateTime?                  @db.Timestamptz(3)
+  pending_updated_status   bike_statuses?
+  price_request_approved   Boolean?                   @default(false)
+  relisting_reasons        Json?
+  msp_manual               Int?
+  bike_inspection_reports  bike_inspection_reports?
+  bike_qc_reports          bike_qc_reports?
+  bike_features            bike_features?             @relation(fields: [variant_id], references: [id])
+  expert_requests          expert_requests[]
+  home_test_drive_requests home_test_drive_requests[]
+  notify_requests          notify_requests[]
+  test_drive_requests      test_drive_requests[]
+  user_bike_interactions   user_bike_interactions[]
+
+  @@index([brand_name])
+  @@index([fuel_type])
+  @@index([km_driven])
+  @@index([manufacture_year])
+  @@index([model_name])
+  @@index([ownership])
+  @@index([price])
+  @@index([reg_no])
+  @@index([vehicle_type])
+}
+
+model expert_requests {
+  id          Int                  @id @default(autoincrement())
+  user_id     Int
+  request_for expert_request_types
+  note        String?              @db.VarChar(200)
+  bike_id     Int?
+  created_at  DateTime?            @default(now()) @db.Timestamptz(6)
+  tag         String?
+  bikes       bikes?               @relation(fields: [bike_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users       users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([bike_id])
+  @@index([user_id])
+}
+
+model members {
+  id                      Int                       @id @default(autoincrement())
+  name                    String?                   @db.VarChar(50)
+  email                   String                    @unique @db.VarChar(100)
+  email_verified          Boolean?                  @default(false)
+  roles                   member_roles[]            @default([customer_support])
+  status                  member_statuses?          @default(inactive)
+  created_at              DateTime?                 @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?                 @db.Timestamptz(3)
+  bike_inspection_reports bike_inspection_reports[]
+  bike_qc_reports         bike_qc_reports[]
+
+  @@index([email])
+}
+
+model otps {
+  id                 Int       @id @default(autoincrement())
+  phone              String    @unique
+  otp                String
+  expiry             DateTime? @db.Timestamptz(6)
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  requested_page_url String?
+
+  @@index([phone])
+}
+
+model sell_requests {
+  id                  Int                    @id @default(autoincrement())
+  name                String?                @db.VarChar(50)
+  phone               String                 @db.VarChar(15)
+  user_id             Int?
+  reg_no              String                 @db.VarChar
+  bike_full_name      String?                @db.VarChar(100)
+  bike_info           Json?
+  bike_parsed_info    Json?
+  source              sources?               @default(web)
+  utm_source          utm_sources?           @default(other)
+  utm_value           String?                @db.VarChar(100)
+  status              sell_request_statuses? @default(active)
+  created_at          DateTime?              @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?              @db.Timestamptz(3)
+  is_vehicle_present  Boolean?
+  pricing_offered     Json?
+  requested_inpection Boolean?               @default(false)
+  users               users?                 @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([phone])
+  @@index([reg_no])
+  @@index([user_id])
+}
+
+model test_drive_requests {
+  id                 Int                          @id @default(autoincrement())
+  bike_id            Int
+  name               String?                      @db.VarChar(50)
+  phone              String                       @db.VarChar(15)
+  user_id            Int?
+  source             sources?                     @default(web)
+  utm_source         utm_sources?                 @default(other)
+  utm_value          String?                      @db.VarChar(100)
+  status             test_drive_request_statuses? @default(active)
+  created_at         DateTime?                    @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?                    @db.Timestamptz(3)
+  test_drive_cart_id Int?
+  bikes              bikes                        @relation(fields: [bike_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  test_drive_cart    test_drive_cart?             @relation(fields: [test_drive_cart_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users?                       @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@unique([phone, bike_id])
+  @@index([bike_id])
+  @@index([phone])
+  @@index([user_id])
+}
+
+model notification {
+  id                 Int                    @id @default(autoincrement())
+  request            Json?
+  status             notification_statuses? @default(pending)
+  requested_by       Int?
+  created_at         DateTime               @default(now()) @db.Timestamptz(3)
+  updated_at         DateTime?              @db.Timestamptz(3)
+  event              String
+  notification_id    String                 @unique
+  category           String?
+  requested_by_email String?
+  service_provider   String
+  source             String?
+  tag                Json?
+  receivers_channels Json?
+  trigger_response   Json?
+  trigger_status     Boolean?
+  batch_id           String?
+  is_triggered       Boolean                @default(false)
+  scheduled_time     DateTime?              @db.Timestamptz(3)
+  custom_id          String?
+  sent_at            DateTime?              @db.Timestamptz(3)
+  external_id        String?
+
+  @@index([notification_id])
+}
+
+model user_bike_interactions {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  bike_id    Int
+  visited    Int?      @default(0)
+  liked      Boolean?  @default(false)
+  bought     Boolean?  @default(false)
+  sold       Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(3)
+  bikes      bikes     @relation(fields: [bike_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, bike_id])
+  @@index([bike_id])
+  @@index([user_id])
+}
+
+model users {
+  id                       Int                        @id @default(autoincrement())
+  name                     String?                    @db.VarChar(50)
+  phone                    String                     @unique @db.VarChar(15)
+  phone_verified           Boolean?                   @default(false)
+  email                    String?                    @db.VarChar(50)
+  email_verified           Boolean?                   @default(false)
+  photo_url                String?                    @db.VarChar(200)
+  dob                      DateTime?                  @db.Timestamptz(6)
+  city                     String?                    @db.VarChar(50)
+  source                   sources?                   @default(web)
+  utm_source               utm_sources?               @default(other)
+  utm_value                String?                    @db.VarChar(100)
+  status                   user_statuses?             @default(active)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?                  @db.Timestamptz(3)
+  expert_requests          expert_requests[]
+  home_test_drive_requests home_test_drive_requests[]
+  notify_requests          notify_requests[]
+  sell_requests            sell_requests[]
+  test_drive_cart          test_drive_cart[]
+  test_drive_requests      test_drive_requests[]
+  user_bike_interactions   user_bike_interactions[]
+
+  @@index([phone])
+}
+
+model config {
+  id          Int       @id @default(autoincrement())
+  config_name String    @db.VarChar(50)
+  config_key  String    @db.VarChar(50)
+  value       Json?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(3)
+
+  @@index([config_key])
+}
+
+model pricing_engine_feedback {
+  id                   Int       @id @default(autoincrement())
+  selected_make        String
+  selected_variant     String?
+  on_road_price        Float
+  owner                Int
+  km                   Int
+  vutto_price          Int
+  depreciation_percent Float
+  year                 Int
+  type                 String
+  quote                Float?
+  vehicle_registration String
+  refurb_cost          Float
+  sentiment            String
+  bike_exists          Boolean
+  features             Json?
+  procurement_price    Float     @default(0)
+  created_at           DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at           DateTime? @db.Timestamptz(3)
+  email                String?
+  procurement_quote    Float?
+}
+
+model challan {
+  id                    Int       @id @default(autoincrement())
+  reg_no                String
+  chassis_no            String?
+  engine_no             String?
+  vcourt_traffic        String?
+  vcourt_traffic_status String?
+  vcourt_notice         String?
+  vcourt_notice_status  String?
+  fir_status            String?
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime? @db.Timestamptz(3)
+  vcourt_notice_json    Json?
+  vcourt_traffic_json   Json?
+  traffic_notice        String?
+  traffic_notice_json   Json?
+  traffic_notice_status String?
+  mparivahan_json       Json?
+  mparivahan_status     String?
+  acko_json             Json?
+  acko_status           String?
+  fir_status_page       String?
+  carinfo_challan_id    Int?
+
+  @@index([reg_no])
+}
+
+model leadbook {
+  id                    Int       @id @default(autoincrement())
+  mobile                String
+  name                  String
+  source                String?
+  tag                   String?
+  created_at            DateTime? @default(now()) @db.Timestamptz(6)
+  type                  String?
+  actions               Json?
+  automated_call_status String?
+}
+
+model asset_storage {
+  id         Int       @id @default(autoincrement())
+  filename   Int       @unique
+  url        Int?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(3)
+
+  @@index([filename])
+}
+
+model challan_act {
+  id     Int    @id @default(autoincrement())
+  act    String
+  rule   String
+  amount Float
+
+  @@index([act])
+}
+
+model notification_delivery_callback {
+  id                Int       @id @default(autoincrement())
+  created_at        DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at        DateTime? @db.Timestamptz(3)
+  delivery_status   String
+  delivery_callback Json
+  channel           String
+  notification_id   String
+  destination       String
+  external_id       String?
+
+  @@index([channel])
+  @@index([created_at])
+  @@index([notification_id])
+}
+
+model variant_identification_feedback {
+  id                Int       @id @default(autoincrement())
+  selected_make     String
+  suggested_variant String
+  sentiment         String
+  selected_features Json?
+  created_at        DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at        DateTime? @db.Timestamptz(3)
+  user_email        String?
+}
+
+model whatsapp_leadbook {
+  id             Int       @id @default(autoincrement())
+  mobile         String
+  meta_timestamp String
+  type           String?
+  from_ctwa      Boolean
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @db.Timestamptz(3)
+
+  @@index([mobile])
+}
+
+model bike_feature_cluster {
+  id                    Int       @id @default(autoincrement())
+  name                  String
+  max_allowed_inventory Int
+  created_at            DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at            DateTime? @db.Timestamptz(3)
+}
+
+model notify_requests {
+  id           Int                          @id @default(autoincrement())
+  bike_id      Int
+  name         String?                      @db.VarChar(50)
+  phone        String                       @db.VarChar(15)
+  user_id      Int?
+  type         String
+  source       sources?                     @default(web)
+  utm_source   utm_sources?                 @default(other)
+  utm_value    String?                      @db.VarChar(100)
+  status       test_drive_request_statuses? @default(active)
+  created_at   DateTime?                    @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?                    @db.Timestamptz(3)
+  is_triggered Boolean                      @default(false)
+  bikes        bikes                        @relation(fields: [bike_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?                       @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@unique([phone, bike_id])
+  @@index([bike_id])
+  @@index([phone])
+  @@index([user_id])
+}
+
+model refurb_videos {
+  id         Int       @id @default(autoincrement())
+  created_at DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at DateTime? @db.Timestamptz(3)
+  refurb_id  String?
+  name       String?
+  email      String?
+  video_url  String?
+}
+
+model wati_contacts {
+  id           Int       @id @default(autoincrement())
+  created_at   DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at   DateTime? @db.Timestamptz(3)
+  event_type   String?
+  wati_id      String?
+  wati_created String?
+  wa_id        String?
+  sender_name  String?
+  source_id    String?
+  source_url   String?
+  source_type  String?
+  meta_data    Json?
+}
+
+model wati_message_leads {
+  id             Int       @id @default(autoincrement())
+  created_at     DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime? @db.Timestamptz(3)
+  wati_id        String?
+  wati_created   String?
+  wati_type      String?
+  source_id      String?
+  source_url     String?
+  wati_timestamp String?
+  event_type     String?
+  status_string  String?
+  waId           String?
+  messageContact String?
+  senderName     String?
+  meta_data      Json?
+  is_sell_lead   Boolean?
+}
+
+model message_templates {
+  id                 Int       @id @default(autoincrement())
+  created_at         DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at         DateTime? @db.Timestamptz(3)
+  body               String?
+  type               String
+  event_name         String
+  day_limit_per_user Int       @default(1)
+  is_active          Boolean   @default(true)
+  is_approved        Boolean   @default(false)
+  stakeholders       Json?
+
+  @@unique([type, event_name])
+}
+
+model price_revision_request {
+  id                           Int       @id @default(autoincrement())
+  make                         String
+  model                        String
+  variant                      String
+  kms                          Int
+  owner                        Int
+  registration_year            Int
+  calculator_prices            Json?
+  current_listed_price         Int
+  suggested_price              Float?
+  modified_price               Int?
+  markup                       Float?
+  msp                          Float?
+  created_at                   DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at                   DateTime? @db.Timestamptz(3)
+  bike_status                  String?
+  bike_id                      Int
+  request_type                 String?
+  status                       String?
+  reason                       String?
+  is_active                    Boolean   @default(false)
+  status_changed_by_user_email String?
+  reg_no                       String?
+  refurb                       Float?
+  refurb_cost_type             String?
+  insurance                    String?
+  request_created_by           String?
+  registration_month           Int?
+  bike_modification_meta       Json?
+  last_bike_status             String?
+  msp_manual                   Int?
+}
+
+model stores {
+  id              Int               @id @default(autoincrement())
+  name            String            @unique
+  location        String?
+  address         String
+  city            String
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?         @db.Timestamptz(3)
+  image           String?
+  pincode         Int               @default(110059)
+  test_drive_cart test_drive_cart[]
+}
+
+model procurement_details {
+  id                        Int       @id @default(autoincrement())
+  created_at                DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at                DateTime? @db.Timestamptz(3)
+  proc_id                   String?
+  reg_number                String?
+  insurance_estimated       String?
+  rfc_inspection            String?
+  estimated_refurb_job_card String?
+  actual_refurb_invoice     String?
+  procurement_price         String?
+  inventory_decision        String?
+  possession_date           String?
+}
+
+model test_drive_cart {
+  id                  Int                   @id @default(autoincrement())
+  user_id             Int
+  date                DateTime              @db.Timestamptz(6)
+  timeslot_name       String
+  timeslot_range_low  DateTime              @db.Timestamptz(6)
+  timeslot_range_high DateTime              @db.Timestamptz(6)
+  store_id            Int
+  is_active           Boolean               @default(false)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?             @db.Timestamptz(3)
+  stores              stores                @relation(fields: [store_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users               users                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  test_drive_requests test_drive_requests[]
+}
+
+model redirected_links {
+  id              Int       @id @default(autoincrement())
+  created_at      DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at      DateTime? @db.Timestamptz(3)
+  key             String    @unique
+  generated_hash  String    @unique
+  open_count      Int?      @default(0)
+  redirection_url String?
+  opens           Json?
+  tag             String?
+  request_ip      Json?
+
+  @@index([generated_hash])
+  @@index([key])
+}
+
+model pricing_engine_lead_form {
+  id                   Int       @id @default(autoincrement())
+  selected_make        String
+  selected_variant     String?
+  owner                Int
+  km                   Int
+  vutto_price          Int
+  year                 Int
+  vehicle_registration String
+  refurb_cost          Float
+  created_at           DateTime? @default(now()) @db.Timestamptz(3)
+  updated_at           DateTime? @db.Timestamptz(3)
+  email                String?
+  price_response       Json?
+  lead_source          String?
+  source_specification String?
+}
+
+model bike_qc_reports {
+  id                  Int       @id @default(autoincrement())
+  bike_id             Int       @unique
+  member_id           Int?
+  date                DateTime  @default(now()) @db.Timestamptz(6)
+  report              Json?
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime? @db.Timestamptz(3)
+  activity_logs       Json?
+  is_report_submitted Boolean?  @default(false)
+  bikes               bikes     @relation(fields: [bike_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  members             members?  @relation(fields: [member_id], references: [id], onUpdate: NoAction)
+
+  @@index([bike_id])
+}
+
+model carinfo_challan {
+  id         Int       @id @default(autoincrement())
+  response   Json?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(3)
+  reg_no     String
+  status     String?
+}
+
+model carinfo_rc {
+  id                Int       @id @default(autoincrement())
+  response          Json?
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @db.Timestamptz(3)
+  reg_no            String
+  status            String?
+  type              String?
+  status_updated_at DateTime? @db.Timestamptz(6)
+}
+
+model click_tracking {
+  id               Int       @id @default(autoincrement())
+  user_identifier  String?
+  cta              String?
+  campaign         String?
+  redirect_url     String?
+  request_metadata Json?
+  timestamp        DateTime?
+  ip               String?
+  location         Json?
+  userAgent        String?
+  referrer         String?
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @db.Timestamptz(3)
+}
+
+model click_tracking_urls {
+  id           Int       @id @default(autoincrement())
+  cta          String?
+  campaign     String?
+  redirect_url String?
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @db.Timestamptz(3)
+  hash         String?
+}
+
+model flow_point_events {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(3)
+  bike_id    Int?
+  event      String?
+  page       String?
+  subpage    String?
+  utm        Json?
+}
+
+model home_test_drive_requests {
+  id              Int                          @id @default(autoincrement())
+  bike_id         Int
+  name            String?                      @db.VarChar(50)
+  phone           String                       @db.VarChar(15)
+  user_id         Int?
+  address         Json?
+  rzpay_order_id  String?
+  date            String?
+  slot            String?
+  utm             Json?
+  status          test_drive_request_statuses? @default(active)
+  created_at      DateTime?                    @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?                    @db.Timestamptz(3)
+  bikes           bikes                        @relation(fields: [bike_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  razorpay_orders razorpay_orders?             @relation(fields: [rzpay_order_id], references: [rzpay_order_id], onUpdate: NoAction)
+  users           users?                       @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([bike_id])
+  @@index([phone])
+  @@index([user_id])
+}
+
+model login_attempts {
+  id                 Int       @id @default(autoincrement())
+  phone              String
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  requested_page_url String?
+
+  @@index([phone])
+}
+
+model pre_inward_entries {
+  id         Int       @id @default(autoincrement())
+  proc_id    String
+  challan_id Int
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(3)
+}
+
+model razorpay_orders {
+  id                       Int                        @id @default(autoincrement())
+  internal_order_id        String
+  rzpay_order_id           String?                    @unique
+  amt                      Float
+  meta                     Json?
+  status                   String?
+  razorpay_payment_id      String?
+  razorpay_order_id        String?
+  razorpay_signature       String?
+  bike_id                  Int?
+  rz_response              Json?
+  user_id                  Int?
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?                  @db.Timestamptz(3)
+  home_test_drive_requests home_test_drive_requests[]
+}
+
+enum bike_statuses {
+  inactive
+  listed
+  delisted
+  sold
+  upcoming
+  booked
+}
+
+enum bike_tag_types {
+  price
+  upcoming
+  status
+}
+
+enum expert_request_types {
+  loan
+  bike
+}
+
+enum member_roles {
+  admin
+  back_office
+  customer_support
+  view_only
+  inspection_team
+}
+
+enum member_statuses {
+  active
+  inactive
+  archived
+}
+
+enum sell_request_statuses {
+  active
+  contacted
+  transacted
+  closed
+  archived
+}
+
+enum sources {
+  offline
+  web
+  android
+  ios
+}
+
+enum test_drive_request_statuses {
+  active
+  contacted
+  closed
+  archived
+}
+
+enum user_statuses {
+  active
+  archived
+}
+
+enum utm_sources {
+  facebook
+  instagram
+  twitter
+  linkedin
+  google
+  walkin
+  referral
+  cold_calling
+  other
+}
+
+enum vehicle_types {
+  commuter
+  scooter
+  sports
+  cruiser
+  electric
+  moped
+}
+
+enum notification_types {
+  email
+  whatsapp
+  sms
+}
+
+enum notification_statuses {
+  success
+  failed
+  pending
+  scheduled
+  triggered
+}
