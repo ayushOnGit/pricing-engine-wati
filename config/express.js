@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const routes = require('../api/routes');
 const error = require('../api/middlewares/error');
+const { requestLogger, errorLogger } = require('../api/middlewares/requestLogger');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/', storage: multer.memoryStorage() })
 
@@ -13,6 +14,12 @@ const upload = multer({ dest: 'uploads/', storage: multer.memoryStorage() })
 * @public
 */
 const app = express();
+
+// Trust proxy (important for getting real IP behind nginx)
+app.set('trust proxy', true);
+
+// Request logging middleware (should be first)
+app.use(requestLogger);
 
 app.use(upload.single('file'))
 
@@ -40,6 +47,9 @@ app.use(error.converter);
 
 // catch 404 and forward to error handler
 app.use(error.notFound);
+
+// Error logging middleware
+app.use(errorLogger);
 
 // error handler, send stacktrace only during development
 app.use(error.handler);
