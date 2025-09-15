@@ -690,3 +690,21 @@ exports.fetchAllowedActions = async (req, res, next) => {
   }
 }
 
+// Get all brands for WATI dynamic lists
+exports.getBrands = async (req, res, next) => {
+  try {
+    const brands = await prisma.$queryRaw`
+      SELECT DISTINCT brand_name 
+      FROM bike_features 
+      ORDER BY brand_name
+    `;
+    
+    return res.json({ 
+      status: 200, 
+      data: brands.map(b => b.brand_name) 
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+

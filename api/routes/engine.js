@@ -128,5 +128,12 @@ router
     controller.fetchAllowedActions,
   );
 
+  // Get all brands for WATI dynamic lists
+  router
+  .route('/brands')
+  .get(
+    controller.getBrands,
+  );
+
 module.exports = router;
 
