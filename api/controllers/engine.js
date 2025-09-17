@@ -77,6 +77,12 @@ exports.getVariantFeatures = async (req, res, next) => {
 
 exports.calculateUsedBikePrice = async (req, res, next) => {
   try {
+    // Debug: Log the incoming request body from WATI
+    console.log('=== PRICING API REQUEST BODY ===');
+    console.log('Raw body:', JSON.stringify(req.body, null, 2));
+    console.log('Body type:', typeof req.body);
+    console.log('================================');
+    
     const { makeModel, variant, type, km, year, month = 1, owner, refurbCost, refurbCostPercent, onRoadPrice, vehicleRegistration, customFeature, augmentRange } = req.body;
     if (km > 65000) {
       throw new APIError({
